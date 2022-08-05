@@ -3,8 +3,8 @@ Awino db Lexer
 version 1.0.2
 Stephen Telian
 """
-from Errors import MissingSyntaxError, UnknownSyntaxError
-from Objects import DataType
+from var.Errors import MissingSyntaxError, UnknownSyntaxError
+
 
 OPENING_PARENTHESIS = "("
 CLOSING_PARENTHESIS = ")"
@@ -17,7 +17,8 @@ END = ";"
 COMMA = ","
 TAB = "\t"
 NEWLINE = "\n"
-ACCEPTED_SYMBOLS = "*=().-><"
+STOP = "."
+ACCEPTED_SYMBOLS = "*=()-><"
 
 
 class Lexer:
@@ -152,11 +153,11 @@ class Lexer:
                     temp = None
                     temp_holder = []
                 self.advance()
-            elif self.current_char in SPACE and not string_mode:
+            elif self.current_char in SPACE or self.current_char in NEWLINE or self.current_char in TAB and not string_mode:
                 if not tuple_mode:
                     if temp is not None:
-                        data = DataType("STRING", temp)
-                        tokens.append(data) if temp is not None else None
+
+                        tokens.append(temp) if temp is not None else None
                         temp = None
                 elif tuple_mode:
                     if self.previous_char in COMMA:
@@ -167,7 +168,7 @@ class Lexer:
                         temp_holder.append(temp) if temp is not None else None
                         temp = None
                 self.advance()
-            elif self.current_char in END or self.current_char in TAB or self.current_char in NEWLINE:
+            elif self.current_char in END:
                 self.advance()
             elif self.current_char in ACCEPTED_SYMBOLS and not tuple_mode:
                 if temp is None:
@@ -175,6 +176,16 @@ class Lexer:
                 elif temp is not None:
                     temp += self.current_char
                 self.advance()
+            elif self.current_char in STOP:
+                """Identifies the full stop for join Table.Column integrations and Meta Commands"""
+                if temp is None:
+                    tokens.append(".")
+                elif temp is not None and not tuple_mode:
+                    tokens.append(temp)
+                    temp = None
+                    tokens.append(".")
+                self.advance()
+
             else:
                 return None, UnknownSyntaxError(self.current_char)
         tokens.append(temp) if temp is not None else None

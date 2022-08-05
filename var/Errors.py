@@ -71,3 +71,8 @@ class UnknownLengthType(Error):
 class UnknownConstraint(Error):
     def __init__(self, details):
         super(UnknownConstraint, self).__init__("Find an A-SQL constraint for", details)
+
+
+class UnknownFileError(Error):
+    def __init__(self, details):
+        super(UnknownFileError, self).__init__("Couldn't Find the file with Path", details)

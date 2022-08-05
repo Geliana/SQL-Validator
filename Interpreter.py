@@ -1,11 +1,12 @@
-from Lexer import Lexer
-from Parser import Parser
+from Lexer.Lexer import Lexer
+from Parser.Parser import Parser
 
 
 def Run(code, input_type):
     if input_type == "<stdin>":
         lexer = Lexer(code, input_type)
         tokens, error = lexer.tokenize()
+        print(f'Tokens: {tokens}')
         if error:
             return None, error
         else:
