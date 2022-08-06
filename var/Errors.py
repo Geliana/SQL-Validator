@@ -76,3 +76,18 @@ class UnknownConstraint(Error):
 class UnknownFileError(Error):
     def __init__(self, details):
         super(UnknownFileError, self).__init__("Couldn't Find the file with Path", details)
+
+
+class IllegalListError(Error):
+    def __int__(self, details):
+        super(IllegalListError, self).__init__("Illegal List Placement", details)
+
+
+class IllegalConditionError(Error):
+    def __int__(self, details):
+        super(IllegalConditionError, self).__init__("Illegal Condition Placement", details)
+
+
+class IllegalSyntaxError(Error):
+    def __int__(self, details):
+        super(IllegalSyntaxError, self).__init__("Illegal Syntax Error", details)

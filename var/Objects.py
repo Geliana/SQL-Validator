@@ -51,10 +51,20 @@ class TableColumnNavigation:
         return f'[Table->{self.table}:Column->{self.column}]'
 
 
-class ColumnValueEntry:
-    def __int__(self, column, value):
-        self.column = column
+class SQLDataType:
+    def __init__(self, type_, constraint, length=None):
+        self.type_ = type_
+        self.length = length
+        self.constraint = constraint
+
+    def __repr__(self):
+        return f'{self.type_}:{self.length}'
+
+
+class KeyValueEntry:
+    def __init__(self, key, value):
+        self.key = key
         self.value = value
 
     def __repr__(self):
-        return f'[Column->{self.column}:Value->{self.value}'
+        return f'[Column->{self.key}:Value->{self.value}'

@@ -3,8 +3,7 @@ Awino db Lexer
 version 1.0.2
 Stephen Telian
 """
-from var.Errors import MissingSyntaxError, UnknownSyntaxError
-
+from var.Errors import MissingSyntaxError, UnknownSyntaxError, InvalidSyntaxError
 
 OPENING_PARENTHESIS = "("
 CLOSING_PARENTHESIS = ")"
@@ -18,7 +17,8 @@ COMMA = ","
 TAB = "\t"
 NEWLINE = "\n"
 STOP = "."
-ACCEPTED_SYMBOLS = "*=()-><"
+ACCEPTED_SYMBOLS = "*=()-><_"
+COMMENTS_START_SYMBOLS = "-/"
 
 
 class Lexer:
@@ -71,6 +71,7 @@ class Lexer:
         digit_mode = False
         nested_tuple_mode = False
         major_division_by_space_mode = False
+        comment_mode = False
 
         # All variables
         temp = None
@@ -78,116 +79,141 @@ class Lexer:
         variable_string = ""
         temp_holder = []
         nested_tuple_variable = []
+        comment_type = None
 
         while self.current_char is not None:
-            if self.current_char == OPENING_PARENTHESIS:
-                """An opening parenthesis has been encountered"""
-                if not tuple_mode:
-                    tuple_mode = True  # initialise tuple mode
-                elif tuple_mode:
-                    """Tuple mode was already initiated indicating that a nested tuple has been encountered"""
-                    nested_tuple_mode = True
-                    if major_division_by_space_mode:
-                        temp_holder.append(temp)
-                    elif not major_division_by_space_mode:
-                        variable_tuple.append(temp)
-                    temp = None
+            if comment_mode:
+                if comment_type == "inline":
+                    if self.current_char is NEWLINE:
+                        comment_mode = False
+
+                elif comment_type == "multiline":
+                    if self.current_char in "*":
+                        self.advance()
+                        comment_mode = False if self.current_char in "\\" else None
                 self.advance()
-            elif self.current_char == CLOSING_PARENTHESIS:
-                if tuple_mode and not nested_tuple_mode:
-                    """Implying the ned of a tuple"""
-                    tuple_mode = False  # Exit Tuple mode
-                    if not major_division_by_space_mode:
-                        variable_tuple.append(temp) if temp is not None else None
-                        tokens.append(tuple(variable_tuple))
-                        variable_tuple = []
-                    else:
+            elif not comment_mode:
+                if self.current_char in COMMENTS_START_SYMBOLS:
+                    comment_mode = True  # initialise Comment Mode
+                    if self.current_char in "-":
+                        self.advance()
+                        if self.current_char in "-":
+                            comment_type = "inline"
+                        else:
+                            return None, InvalidSyntaxError("-")
+
+                        # with --
+                    elif self.current_char in "/":
+                        self.advance()
+                        comment_type = "multiline" if self.current_char in "*" else None
+                    self.advance()
+                elif self.current_char == OPENING_PARENTHESIS:
+                    """An opening parenthesis has been encountered"""
+                    if not tuple_mode:
+                        tuple_mode = True  # initialise tuple mode
+                    elif tuple_mode:
+                        """Tuple mode was already initiated indicating that a nested tuple has been encountered"""
+                        nested_tuple_mode = True
+                        if major_division_by_space_mode:
+                            temp_holder.append(temp)
+                        elif not major_division_by_space_mode:
+                            variable_tuple.append(temp)
+                        temp = None
+                    self.advance()
+                elif self.current_char == CLOSING_PARENTHESIS:
+                    if tuple_mode and not nested_tuple_mode:
+                        """Implying the ned of a tuple"""
+                        tuple_mode = False  # Exit Tuple mode
+                        if not major_division_by_space_mode:
+                            variable_tuple.append(temp) if temp is not None else None
+                            tokens.append(tuple(variable_tuple))
+                            variable_tuple = []
+                        else:
+                            temp_holder.append(temp) if temp is not None else None
+                            variable_tuple.append(tuple(temp_holder))
+                            tokens.append(tuple(variable_tuple))
+                            temp_holder = []
+                            variable_tuple = []
+                        temp = None
+                    elif tuple_mode and nested_tuple_mode:
+                        """Implying the end of of parsing within a nested tuple"""
+                        nested_tuple_mode = False
+                        nested_tuple_variable.append(temp)
+                        temp = None
+                        temp_holder.append(tuple(nested_tuple_variable))
+                        nested_tuple_variable = []
+
+                    self.advance()
+                elif self.current_char in STRING_CHARS:
+                    """Handles all symbols that represent strings"""
+                    if not string_mode:
+                        string_mode = True  # initialise string mode
+                    elif string_mode:
+                        string_mode = False  # Exit string mode
+                        if not tuple_mode:
+                            tokens.append(variable_string)
+                        elif tuple_mode:
+                            variable_tuple.append(variable_string)
+                        variable_string = ""
+                    self.advance()
+                elif string_mode:
+                    variable_string += self.current_char
+                    self.advance()
+                elif not string_mode and self.current_char in ALPHABETS:
+                    if temp is None:
+                        temp = self.current_char
+                    elif temp is not None:
+                        temp += self.current_char
+                    self.advance()
+                elif not string_mode and self.current_char in DIGITS:
+                    digit_mode = True
+                    if temp is None:
+                        temp = self.current_char
+                    elif temp is not None:
+                        temp += self.current_char
+                    self.advance()
+                elif self.current_char in COMMA:
+                    if major_division_by_space_mode:
+                        major_division_by_space_mode = False
                         temp_holder.append(temp) if temp is not None else None
                         variable_tuple.append(tuple(temp_holder))
-                        tokens.append(tuple(variable_tuple))
+                        temp = None
                         temp_holder = []
-                        variable_tuple = []
-                    temp = None
-                elif tuple_mode and nested_tuple_mode:
-                    """Implying the end of of parsing within a nested tuple"""
-                    nested_tuple_mode = False
-                    nested_tuple_variable.append(temp)
-                    temp = None
-                    temp_holder.append(tuple(nested_tuple_variable))
-                    nested_tuple_variable = []
-
-                self.advance()
-            elif self.current_char in STRING_CHARS:
-                """Handles all symbols that represent strings"""
-                if not string_mode:
-                    string_mode = True  # initialise string mode
-                elif string_mode:
-                    string_mode = False  # Exit string mode
+                    self.advance()
+                elif self.current_char in SPACE or self.current_char in NEWLINE or self.current_char in TAB and not string_mode:
                     if not tuple_mode:
-                        tokens.append(variable_string)
+                        if temp is not None:
+                            tokens.append(temp) if temp is not None else None
+                            temp = None
                     elif tuple_mode:
-                        variable_tuple.append(variable_string)
-                    variable_string = ""
-                self.advance()
-            elif string_mode:
-                variable_string += self.current_char
-                self.advance()
-            elif not string_mode and self.current_char in ALPHABETS:
-                if temp is None:
-                    temp = self.current_char
-                elif temp is not None:
-                    temp += self.current_char
-                self.advance()
-            elif not string_mode and self.current_char in DIGITS:
-                digit_mode = True
-                if temp is None:
-                    temp = self.current_char
-                elif temp is not None:
-                    temp += self.current_char
-                self.advance()
-            elif self.current_char in COMMA:
-                if major_division_by_space_mode:
-                    major_division_by_space_mode = False
-                    temp_holder.append(temp) if temp is not None else None
-                    variable_tuple.append(tuple(temp_holder))
-                    temp = None
-                    temp_holder = []
-                self.advance()
-            elif self.current_char in SPACE or self.current_char in NEWLINE or self.current_char in TAB and not string_mode:
-                if not tuple_mode:
-                    if temp is not None:
+                        if self.previous_char in COMMA:
+                            variable_tuple.append(temp) if temp is not None else None
+                            temp = None
+                        elif self.previous_char not in COMMA:
+                            major_division_by_space_mode = True
+                            temp_holder.append(temp) if temp is not None else None
+                            temp = None
+                    self.advance()
+                elif self.current_char in END:
+                    self.advance()
+                elif self.current_char in ACCEPTED_SYMBOLS and not tuple_mode:
+                    if temp is None:
+                        temp = self.current_char
+                    elif temp is not None:
+                        temp += self.current_char
+                    self.advance()
+                elif self.current_char in STOP:
+                    """Identifies the full stop for join Table.Column integrations and Meta Commands"""
+                    if temp is None:
+                        tokens.append(".")
+                    elif temp is not None and not tuple_mode:
+                        tokens.append(temp)
+                        temp = None
+                        tokens.append(".")
+                    self.advance()
 
-                        tokens.append(temp) if temp is not None else None
-                        temp = None
-                elif tuple_mode:
-                    if self.previous_char in COMMA:
-                        variable_tuple.append(temp) if temp is not None else None
-                        temp = None
-                    elif self.previous_char not in COMMA:
-                        major_division_by_space_mode = True
-                        temp_holder.append(temp) if temp is not None else None
-                        temp = None
-                self.advance()
-            elif self.current_char in END:
-                self.advance()
-            elif self.current_char in ACCEPTED_SYMBOLS and not tuple_mode:
-                if temp is None:
-                    temp = self.current_char
-                elif temp is not None:
-                    temp += self.current_char
-                self.advance()
-            elif self.current_char in STOP:
-                """Identifies the full stop for join Table.Column integrations and Meta Commands"""
-                if temp is None:
-                    tokens.append(".")
-                elif temp is not None and not tuple_mode:
-                    tokens.append(temp)
-                    temp = None
-                    tokens.append(".")
-                self.advance()
-
-            else:
-                return None, UnknownSyntaxError(self.current_char)
+                else:
+                    return None, UnknownSyntaxError(self.current_char)
         tokens.append(temp) if temp is not None else None
         """Handle Errors"""
         if tokens is None:

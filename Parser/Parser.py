@@ -9,11 +9,11 @@ TOKENS = {'use': "TT_USE", 'using': "TT_USING", 'create': "TT_CREATE", 'drop': "
 
 DATATYPES = {'integer': "DT_INT", 'varchar': "DT_VARCHAR", 'boolean': "DT_BOOL", 'float': "DT_FLT"}
 
-CONDITIONS = {'=': "CT_SET", '==': "CT_EQUAL", '>': "CT_GREATER", '<': "CT_LOWER", '<=': "CT_LSEQ", '>=': "CT_GRTEQ",
+CONDITIONS = {'==': "CT_EQUAL", '>': "CT_GREATER", '<': "CT_LOWER", '<=': "CT_LSEQ", '>=': "CT_GRTEQ",
               '<>': "CT_NTEQ"}
 """
 == indicates to check on equality
-= sets one to the other
+= sets one to the other -- was deprecated in version 0.0.3 since it doesnt really qualify to be a condition
 
 e.g -- left-node == right-node -if left-node is equal to right-node-,
  while left-node = right-node -set left-node to right-node-
@@ -47,10 +47,12 @@ class Parser:
     1st Priority = Tuples -- This is as a result of preventing an error when we try to lower our code for comparisons
     2nd Priority = Tokens -- As a result of a virtual difference between tokens and strings
     3rd Priority = Strings and Conditional Symbols --
-    4th Virtual-Priority = "." Symbol -- To check for join statements and Meta commands
+    3rd Virtual-Priority = "." Symbol -- To check for join statements and Meta commands
+    4th Priority = SQL Datatypes --
 
-    4th Virtual-Priority
-    "." is Recognized as a Navigational symbol and a meta command starter
+    3rd Virtual-Priority
+    "." is Recognized as a Navigational symbol and a meta command starter but doesn't necessitate a  new priority
+    hence just  3rd virtual-Priority
 
     `Stephen Telian`
     """
@@ -157,5 +159,5 @@ class Parser:
                 previous_token_priority_type = "third"
 
         blocks.append(temp) if temp is not None else None
-        temp = None
+
         return blocks, None
