@@ -11,6 +11,9 @@ SQL statements follow a Two-step Process to achieve _Awino code_
 2. Lexer
     > The tokens are converted into Singular Token-Types with primary and secondary value
 
+## Using the Program
+To use the program please check `USE.MD` file
+
 ## Awino Code
 Awino code follows the Following Format:
 > _[Token Type]:[Primary Value]:[Secondary Value]_

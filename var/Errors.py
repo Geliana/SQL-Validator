@@ -79,15 +79,15 @@ class UnknownFileError(Error):
 
 
 class IllegalListError(Error):
-    def __int__(self, details):
+    def __init__(self, details):
         super(IllegalListError, self).__init__("Illegal List Placement", details)
 
 
 class IllegalConditionError(Error):
-    def __int__(self, details):
+    def __init__(self, details):
         super(IllegalConditionError, self).__init__("Illegal Condition Placement", details)
 
 
 class IllegalSyntaxError(Error):
-    def __int__(self, details):
+    def __init__(self, details):
         super(IllegalSyntaxError, self).__init__("Illegal Syntax Error", details)

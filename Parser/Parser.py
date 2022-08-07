@@ -1,5 +1,6 @@
-from var.Errors import UnknownSyntaxError, InvalidSyntaxError
-from var.Objects import Token, Condition, TableColumnNavigation
+from var.Errors import IllegalListError, IllegalConditionError, MissingSyntaxError, UnknownSyntaxError, \
+    InvalidSyntaxError, IllegalSyntaxError
+from var.Objects import Token, KeyValueEntry, MetaCommands, TableColumnNavigation, Condition
 
 TOKENS = {'use': "TT_USE", 'using': "TT_USING", 'create': "TT_CREATE", 'drop': "TT_DROP", 'inform': "TT_INFORM",
           'alter': "TT_ALTER", 'rename': "TT_REN", 'add': "TT_ADD", 'to': "TT_TO", 'database': "TT_DB",
@@ -7,54 +8,74 @@ TOKENS = {'use': "TT_USE", 'using': "TT_USING", 'create': "TT_CREATE", 'drop': "
           'values': "TT_VAL", 'from': "TT_FRM", 'help': "TT_HELP", 'set': "TT_SET", 'where': "TT_WHERE",
           'update': "TT_UPDT", 'delete': "TT_DLT", 'inner': "TT_INNER", 'join': "TT_JOIN"}
 
-DATATYPES = {'integer': "DT_INT", 'varchar': "DT_VARCHAR", 'boolean': "DT_BOOL", 'float': "DT_FLT"}
-
-CONDITIONS = {'==': "CT_EQUAL", '>': "CT_GREATER", '<': "CT_LOWER", '<=': "CT_LSEQ", '>=': "CT_GRTEQ",
+CONDITIONS = {'=': "CT_SET", '==': "CT_EQUAL", '>': "CT_GREATER", '<': "CT_LOWER", '<=': "CT_LSEQ", '>=': "CT_GRTEQ",
               '<>': "CT_NTEQ"}
 """
 == indicates to check on equality
-= sets one to the other -- was deprecated in version 0.0.3 since it doesnt really qualify to be a condition
+= sets one to the other -- deprecated in version 0.0.4 as it doesnt necessarily qualify to be a condition
 
 e.g -- left-node == right-node -if left-node is equal to right-node-,
  while left-node = right-node -set left-node to right-node-
 """
-METACOMMANDS = {'exit': "EXIT"}
 
+METACOMMANDS = {'exit': "EXIT"}
 
 class Parser:
     """
-    The Parser
+    The Parser               --- Revised under version 0.0.3
 
-    this is where majority of token conversion take place,
-    Converting into a syntax (blocks) that the interpreter can understand
+    Majority Token Conversion takes place Here,
+    Converting Recognized A-SQL syntax into pre-determines blocks
 
-    tokens received are categorised into 5 token types
-    variable tuple,
-    token,
-    variable string,
-    data type,
-    condition symbol
+    Tokens are received in List form from the Lexer and are categorised into block types
 
-    Each variable is added to a token as its value or as its secondary value
-    Data types and Tokens are grouped into one conditional clause due to their similarities
+    variables
+        -- Tuples -- come in form of python Tuples enclosed in parentheses
+        -- strings -- Can either come enclosed inside string symbols or just as they are
+    SQL Tokens, Identifiers and Symbols
+        -- SQL Tokens
+        -- Conditions
+        -- Constraints
+        -- Datatypes
+        -- Join Table Column Navigational Strings using '.' Notation
+        -- Key value set store indicated by the "=" sign
+    Special Non-SQL Syntax
+        -- Meta Commands __ which come with a '.' at the beginning
 
-    Conditional Symbols are different in architecture and have two nodes left and right,
-    they wait inside the string variable to be instantiated and pick from their its nodes when the next
-    token happens to be a conditional symbol
+    Variables are considered to be values of their corresponding Tokens and are treated as so
 
-    For the lexer to work, priorities are given since the difference between each category is purely virtual and depends
-    on its location in the code.
+    SQL Tokens or simply referred to as Tokens and may come fitted with a value or values and
+    the length of the values, they have been Pre-Configured and are here to just be identified
+    and Fitted with their value(s)
+
+    Conditions are Defined above with a simple Brief Explanation for each of them
+    They are different in architecture since they give Comparsions between two values
+    Hence they come bundled with a Left-node and Right-node
+
+    Datatypes are PreDefined (above) Known SQL Datatypes and are constructed to come with a length
+    and a constraint
+
+    Joint Table Column Strings are Navigational tools on a table level divided by a full stop
+    Table.Column
+
+    Meta Commands are small one line simple statements
+
+    Key Value Entries are two strings divided by a '=' sign, they are allocated left_node and  right_node. The left_node
+    is set to the Right node. Perfect for Column value integreations
+
+    For the Lexer to work, priorities are given since the difference between each category is purely virtual and depends
+    on its location in the entry code.
     1st Priority = Tuples -- This is as a result of preventing an error when we try to lower our code for comparisons
-    2nd Priority = Tokens -- As a result of a virtual difference between tokens and strings
-    3rd Priority = Strings and Conditional Symbols --
-    3rd Virtual-Priority = "." Symbol -- To check for join statements and Meta commands
-    4th Priority = SQL Datatypes --
+    2nd Priority = SQL Tokens -- Known and common SQL tokens
+    3rd Priority  = Conditions
+    4th Priority = Strings
+    5th Priority = KeyValueEntries
+    6th Priority = Table Navigational Strings / Meta Command
 
-    3rd Virtual-Priority
-    "." is Recognized as a Navigational symbol and a meta command starter but doesn't necessitate a  new priority
-    hence just  3rd virtual-Priority
 
-    `Stephen Telian`
+    Stephen Telian
+    Last Update: 6th August 2022
+
     """
     position = -1
     current_token = None
@@ -69,9 +90,9 @@ class Parser:
 
     def parse(self):
         """
-        This here starts the processes of Parsing through all Token Types
+           This here starts the processes of Parsing through all Token Types
 
-        """
+           """
         """ For the final product"""
         blocks = []
 
@@ -81,83 +102,159 @@ class Parser:
         """ For Login in Previous token -types"""
         previous_token_priority_type = None
         while self.current_token is not None:
-            if type(self.current_token) == tuple:
-                """Tuple handling as First Priority"""
-                if previous_token_priority_type == "second":
-                    """Indicating that it is a value of a Token"""
+            if type(self.current_token) is tuple:
+                """A Tuple has been identified"""
+                if previous_token_priority_type is None:
+                    """Indicating that only a tuple was passed"""
+                    return None, IllegalListError(self.current_token)
+                elif previous_token_priority_type == "first":
+                    """Indicating that a list was passed previously meaning it is a continuous stream of list"""
+                    temp.addValue(self.current_token)
+                elif previous_token_priority_type == "second":
+                    """Previous token type was a Token and hence this is its preceding value"""
                     temp.addValue(self.current_token)
                 elif previous_token_priority_type == "third":
-                    """Indicating that it is a value of a token after a primary value of string had already been 
-                    identified """
+                    """Previous Token type was a condition"""
                     temp.addValue(self.current_token)
-                elif previous_token_priority_type == "first":
-                    """Handling Multiple Tuples"""
+                elif previous_token_priority_type == "fourth":
+                    """Previous token type was string"""
+                    temp.addValue(self.current_token)
+                elif previous_token_priority_type == "fifth":
+                    "Previous was a key value entry"
+                    temp.addValue(self.current_token)
+                elif previous_token_priority_type == "sixth":
+                    """Previous was a navigational string"""
                     temp.addValue(self.current_token)
                 previous_token_priority_type = "first"
                 self.advance()
             elif self.current_token.lower() in TOKENS:
-                """Replace the Token into the standardized A-SQL Syntax"""
-                tok = TOKENS[self.current_token.lower()]
-                if previous_token_priority_type == "second":
-                    blocks.append(temp)  # whatever was originally inside temp is added into blocks
-                    temp = Token(tok)  # New Temp
-                elif previous_token_priority_type is None:
-                    temp = Token(tok)  # if this is the first token to be encountered
-                elif previous_token_priority_type == "third" or previous_token_priority_type == "first":
-                    """If the previous token type is either a string or a tuple"""
+                self.current_token = self.current_token.lower()
+                """Hence it is a tokens"""
+                if previous_token_priority_type is None:
+                    """The first token to be encountered"""
+                    temp = Token(TOKENS[self.current_token])
+                elif previous_token_priority_type == "first":
+                    """The previous token was identified to be a tuple and hence is to be finalized being
+                     put into the blocks"""
                     blocks.append(temp)
-                    temp = Token(tok)
+                    temp = Token(TOKENS[self.current_token])
+                elif previous_token_priority_type == "second":
+                    """The previous token has been identified to be a token hence let it be finalized and taken
+                     into blocks """
+                    blocks.append(temp)
+                    temp = Token(TOKENS[self.current_token])
+                elif previous_token_priority_type == "third":
+                    """Previous token type was a condition"""
+                    blocks.append(temp)
+                    temp = Token(TOKENS[self.current_token])
+                elif previous_token_priority_type == "fourth":
+                    """Previous token type was a string"""
+                    blocks.append(temp)
+                    temp = Token(TOKENS[self.current_token])
+                elif previous_token_priority_type == "fifth":
+                    """Previous token was a key value Entry"""
+                    blocks .append(temp)
+                    temp = Token(TOKENS[self.current_token])
+                elif previous_token_priority_type == "sixth":
+                    """Previous token type was a affliated to the dot notation """
+                    blocks.append(temp)
+                    temp = Token(TOKENS[self.current_token])
                 previous_token_priority_type = "second"
                 self.advance()
-            elif type(self.current_token) == str and self.current_token != "." or self.current_token in CONDITIONS:
-                if previous_token_priority_type == "second":
-                    """ If previous token was an ASQL syntax type """
-                    if self.current_token not in CONDITIONS:
-                        temp.addValue(self.current_token)
-                elif previous_token_priority_type is None:
-                    """This implies that only a condition or un unknown string was passed hence raising an error"""
-                    return None, UnknownSyntaxError(self.current_token)
-                elif previous_token_priority_type == "third":
-                    """Conditional Symbols are instantiated here"""
-                    if self.current_token in CONDITIONS:
-                        tok = CONDITIONS[self.current_token]
-                        self.advance()
-                        temp.changeLastValue(Condition(tok, temp.lastValue(), self.current_token))
-                    elif type(temp.lastValue()) is Condition or type(temp.lastValue()) is list:
-                        left_node = self.current_token
-
-                        self.advance()
-                        if self.current_token in CONDITIONS:
-                            tok = CONDITIONS[self.current_token]
-                            self.advance()
-                            temp.addValue(Condition(tok, left_node, self.current_token))
-                    else:
-                        """ Multiple Strings"""
-                        if temp is None:
-                            return None, InvalidSyntaxError(self.current_token)
-                        elif temp is not None:
-                            temp.addValue(self.current_token)
+            elif self.current_token in CONDITIONS:
+                if previous_token_priority_type is None:
+                    """A condition was passed only """
+                    return None, IllegalConditionError(self.current_token)
                 elif previous_token_priority_type == "first":
-                    """If previous token has been identified to be a tuple and the current token is a string or a 
-                    condition """
-                    pass
+                    """A tuple was identified before this """
+                    return None, MissingSyntaxError(f'Expected value before: {self.current_token}')
+                elif previous_token_priority_type == "second":
+                    last_value = temp.lastValue()
+                    temp.popLastValue()
+                    self.advance()
+                    temp.addValue(Condition(CONDITIONS[self.current_token],last_value, self.current_token))
+                elif previous_token_priority_type == "third":
+                    """Condition Irregularity"""
+                    return None, IllegalSyntaxError(self.current_token)
+                elif previous_token_priority_type == "fourth":
+                    """Previous Token was a string"""
+                    con = self.current_token
+                    last_value = temp.lastValue()
+                    temp.popLastValue()
+                    self.advance()
+                    temp.addValue(Condition(CONDITIONS[con], last_value, self.current_token))
+                elif previous_token_priority_type == "fifth":
+                    return None, IllegalConditionError(self.current_token)
+                elif previous_token_priority_type == "sixth":
+                    return None, IllegalConditionError(self.current_token)
+
                 previous_token_priority_type = "third"
+                self.advance()
+            elif type(self.current_token) is str and self.current_token != "." and self.current_token != "=":
+                """A string that is neither a token nor a condition has been identified"""
+                if previous_token_priority_type is None:
+                    return None, UnknownSyntaxError(self.current_token)
+                elif previous_token_priority_type == "first":
+                    """Previous token was a Tuple hence this will be another value to its collection """
+                    temp.addValue(self.current_token)
+                elif previous_token_priority_type == "second":
+                    """Previous token was a Token Type"""
+                    temp.addValue(self.current_token)
+                elif previous_token_priority_type == "third":
+                    temp.addValue(self.current_token)
+                elif previous_token_priority_type == "fourth":
+                    temp.addValue(self.current_token)
+                elif previous_token_priority_type == "fifth":
+                    return None, IllegalSyntaxError(self.current_token)
+                elif previous_token_priority_type == "sixth":
+                    temp.addValue(self.current_token)
+                previous_token_priority_type = "fourth"
+                self.advance()
+            elif self.current_token == "=":
+                if previous_token_priority_type is None:
+                    return None, UnknownSyntaxError(self.current_token)
+                elif previous_token_priority_type == "first":
+                    return None, InvalidSyntaxError(self.current_token)
+                elif previous_token_priority_type == "second":
+                    """Handle special Tokens set to values"""
+                    temp = KeyValueEntry(temp, self.current_token)
+                elif previous_token_priority_type == "third":
+                    return None, UnknownSyntaxError(self.current_token)
+                elif previous_token_priority_type == "fourth":
+                    last_value = temp.lastValue()
+                    temp.popLastValue()
+                    blocks.append(temp)
+                    temp = KeyValueEntry(last_value, self.current_token)
+                elif previous_token_priority_type == "fifth" or previous_token_priority_type == "sixth":
+                    return None, IllegalSyntaxError(self.current_token)
+                previous_token_priority_type = "fifth"
                 self.advance()
             elif self.current_token == ".":
-                if previous_token_priority_type == "first":
-                    pass
-                if previous_token_priority_type == "second":
-                    pass
-                if previous_token_priority_type == "third":
-                    """Implies that the last token was identified to be a string
-                    Strings, are given a token parent hence the string should be in a value"""
-
+                if previous_token_priority_type is None:
                     self.advance()
-
-                    temp.changeLastValue(TableColumnNavigation(temp.lastValue(), self.current_token))
+                    temp = MetaCommands(METACOMMANDS[self.current_token])
+                elif previous_token_priority_type == "first":
+                    return None, InvalidSyntaxError(self.current_token)
+                elif previous_token_priority_type == "second":
+                    return None, InvalidSyntaxError(self.current_token)
+                elif previous_token_priority_type == "third":
+                    return None, InvalidSyntaxError(self.current_token)
+                elif previous_token_priority_type == "fourth":
+                    last_value = temp.lastValue()
+                    temp.popLastValue()
+                    self.advance()
+                    temp.addValue(TableColumnNavigation(last_value, self.current_token))
+                elif previous_token_priority_type == "fifth":
+                    return None, InvalidSyntaxError(self.current_token)
+                elif previous_token_priority_type == "sixth":
+                    blocks.append(temp)
+                    temp = MetaCommands(METACOMMANDS[self.current_token])
+                previous_token_priority_type = "sixth"
                 self.advance()
-                previous_token_priority_type = "third"
-
         blocks.append(temp) if temp is not None else None
 
         return blocks, None
+
+
+
+
