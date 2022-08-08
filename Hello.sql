@@ -2768,7 +2768,7 @@ INSERT INTO `finance` (`financeIdentifier`, `transactionIdentifier`, `transactio
 (1054,	'R84F13F',	52367,	'10/8/2008',	'Monthly Salary, July',	'EMP104',	'Equity',	'Withdraw',	'complete',	'7UVT84A'),
 (1055,	'9U8OAS4',	26723,	'6/5/2009',	'Monthly Salary, July',	'EMP105',	'Equity',	'Withdraw',	'complete',	'FN9PUO7'),
 (1056,	'OSJ3626',	47736,	'8/28/1984',	'Monthly Salary, July',	'EMP106',	'Equity',	'Withdraw',	'complete',	'1SZYM1T'),
-(1057,	'9.89E+71',	24261,	'5/25/1986',	'Monthly Salary, July',	'EMP107',	'Equity',	'Withdraw',	'complete',	'45P3D34'),
+(1057,	'hello',	24261,	'5/25/1986',	'Monthly Salary, July',	'EMP107',	'Equity',	'Withdraw',	'complete',	'45P3D34'),
 (1058,	'662G622',	64514,	'3/27/1999',	'Monthly Salary, July',	'EMP108',	'Equity',	'Withdraw',	'complete',	'OGQ841G'),
 (1059,	'XUZR95F',	24485,	'5/16/1996',	'Monthly Salary, July',	'EMP109',	'Equity',	'Withdraw',	'complete',	'84W677X'),
 (1060,	'7CB8997',	26743,	'4/27/1996',	'Monthly Salary, July',	'EMP110',	'Equity',	'Withdraw',	'complete',	'IY7VB6E'),

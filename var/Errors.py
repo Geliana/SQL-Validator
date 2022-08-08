@@ -1,10 +1,12 @@
 class Error:
-    def __init__(self, error_name, details):
+    def __init__(self, error_name, details, line=0, column=0):
         self.error_name = error_name
         self.details = details
+        self.line = line
+        self.column = column
 
     def as_string(self):
-        result = f'{self.error_name}: "{self.details}"'
+        result = f'{self.error_name}: "{self.details}" at line {self.line}->{self.column}'
         return result
 
 
@@ -14,8 +16,8 @@ class InvalidSyntaxError(Error):
 
 
 class UnknownDatabaseError(Error):
-    def __init__(self, details):
-        super(UnknownDatabaseError, self).__init__("Database does not exist", details)
+    def __init__(self, details, line, column):
+        super(UnknownDatabaseError, self).__init__("Database does not exist", details, line, column)
 
 
 class MissingValueError(Error):
@@ -24,23 +26,23 @@ class MissingValueError(Error):
 
 
 class InvalidValueError(Error):
-    def __init__(self, details):
-        super(InvalidValueError, self).__init__("Invalid Value", details)
+    def __init__(self, details, line, column):
+        super(InvalidValueError, self).__init__("Invalid Value", details, line, column)
 
 
 class TableExistsError(Error):
-    def __init__(self, details):
-        super(TableExistsError, self).__init__("A similar Table exists", details)
+    def __init__(self, details, line, column):
+        super(TableExistsError, self).__init__("A similar Table exists", details, line, column)
 
 
 class UnknownTableError(Error):
-    def __init__(self, details):
-        super(UnknownTableError, self).__init__("Table does not exist", details)
+    def __init__(self, details, line, column):
+        super(UnknownTableError, self).__init__("Table does not exist", details, line, column)
 
 
 class DatabaseExistsError(Error):
-    def __init__(self, details):
-        super(DatabaseExistsError, self).__init__("A similar Database exists", details)
+    def __init__(self, details, line, column):
+        super(DatabaseExistsError, self).__init__("A similar Database exists", details, line, column)
 
 
 class MissingSyntaxError(Error):
@@ -49,33 +51,33 @@ class MissingSyntaxError(Error):
 
 
 class UnknownSyntaxError(Error):
-    def __init__(self, details):
-        super(UnknownSyntaxError, self).__init__("Unknown Syntax", details)
+    def __init__(self, details, line=0, column=0):
+        super(UnknownSyntaxError, self).__init__("Unknown Syntax", details, line, column)
 
 
 class UnknownColumnError(Error):
-    def __init__(self, details):
-        super(UnknownColumnError, self).__init__("Unknown Column", details)
+    def __init__(self, details, line, column):
+        super(UnknownColumnError, self).__init__("Unknown Column", details, line, column)
 
 
 class ColumnExistsError(Error):
-    def __init__(self, details):
-        super(ColumnExistsError, self).__init__("A similar Column exists", details)
+    def __init__(self, details, line, column):
+        super(ColumnExistsError, self).__init__("A similar Column exists", details, line, column)
 
 
 class UnknownLengthType(Error):
-    def __init__(self, details):
-        super(UnknownLengthType, self).__init__("This does no match a length type", details)
+    def __init__(self, details, line, column):
+        super(UnknownLengthType, self).__init__("This does no match a length type", details, line, column)
 
 
 class UnknownConstraint(Error):
-    def __init__(self, details):
-        super(UnknownConstraint, self).__init__("Find an A-SQL constraint for", details)
+    def __init__(self, details, line, column):
+        super(UnknownConstraint, self).__init__("Find an A-SQL constraint for", details, line, column)
 
 
 class UnknownFileError(Error):
-    def __init__(self, details):
-        super(UnknownFileError, self).__init__("Couldn't Find the file with Path", details)
+    def __init__(self, details, line, column):
+        super(UnknownFileError, self).__init__("Couldn't Find the file with Path", details, line, column)
 
 
 class IllegalListError(Error):

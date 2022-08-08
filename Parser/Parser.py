@@ -20,6 +20,7 @@ e.g -- left-node == right-node -if left-node is equal to right-node-,
 
 METACOMMANDS = {'exit': "EXIT"}
 
+
 class Parser:
     """
     The Parser               --- Revised under version 0.0.3
@@ -153,7 +154,7 @@ class Parser:
                     temp = Token(TOKENS[self.current_token])
                 elif previous_token_priority_type == "fifth":
                     """Previous token was a key value Entry"""
-                    blocks .append(temp)
+                    blocks.append(temp)
                     temp = Token(TOKENS[self.current_token])
                 elif previous_token_priority_type == "sixth":
                     """Previous token type was a affliated to the dot notation """
@@ -172,7 +173,7 @@ class Parser:
                     last_value = temp.lastValue()
                     temp.popLastValue()
                     self.advance()
-                    temp.addValue(Condition(CONDITIONS[self.current_token],last_value, self.current_token))
+                    temp.addValue(Condition(CONDITIONS[self.current_token], last_value, self.current_token))
                 elif previous_token_priority_type == "third":
                     """Condition Irregularity"""
                     return None, IllegalSyntaxError(self.current_token)
@@ -254,7 +255,3 @@ class Parser:
         blocks.append(temp) if temp is not None else None
 
         return blocks, None
-
-
-
-

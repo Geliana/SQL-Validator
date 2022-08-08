@@ -3,7 +3,8 @@ Awino db Lexer
 version 1.0.2
 Stephen Telian
 """
-from var.Errors import MissingSyntaxError, UnknownSyntaxError, InvalidSyntaxError
+from var.Errors import MissingSyntaxError, UnknownSyntaxError
+
 
 OPENING_PARENTHESIS = "("
 CLOSING_PARENTHESIS = ")"
@@ -17,8 +18,7 @@ COMMA = ","
 TAB = "\t"
 NEWLINE = "\n"
 STOP = "."
-ACCEPTED_SYMBOLS = "*=()-><_"
-COMMENTS_START_SYMBOLS = "-/"
+ACCEPTED_SYMBOLS = "*=()-><_@+"
 
 
 class Lexer:
@@ -29,12 +29,19 @@ class Lexer:
     opening parenthesis. it then converts them to either a tuple or a string.
     Anything inside string-characters are left as is and are not formatted (literal)
 
+
+
     In order to perform this there are 4 different modes
+    *comments
     Normal
     Tuple
     nested tuple mode(A tuple within a tuple)
     string
     major division by space mode -- this mode handles multiple non-comma separated syntax inside a tuple e.g ('column_name' INTEGER(255) NOT NULL)
+
+    Comments are ignored when encountered that means by the comment symbols like -- and /*
+    inline comments start with -- and are ignored as soon as the line is passes
+    multiline comments start with /* and end with */
 
     Tuple Mode implies that a parenthesis has been found and tuple mode wasn't originally active
     if tuple mode was originally active it means it is a nested tuple and a sub-mode (nested_tuple) is initiated
@@ -51,13 +58,21 @@ class Lexer:
     current_char = None
     previous_char = None
 
+    line = 1
+    column = 1
+
     def __init__(self, code, input_type):
         self.code = code
         self.input_type = input_type
         self.advance()
 
+    def advanceLine(self):
+        self.line += 1
+        self.column = 1
+
     def advance(self):
         self.position += 1
+        self.column += 1
         self.current_char = self.code[self.position] if self.position < len(self.code) else None
         self.previous_char = self.code[self.position - 1] if self.position > 0 else None
 
@@ -72,6 +87,7 @@ class Lexer:
         nested_tuple_mode = False
         major_division_by_space_mode = False
         comment_mode = False
+        probable_comment = False
 
         # All variables
         temp = None
@@ -82,32 +98,31 @@ class Lexer:
         comment_type = None
 
         while self.current_char is not None:
-            if comment_mode:
-                if comment_type == "inline":
-                    if self.current_char is NEWLINE:
+            self.advanceLine() if self.current_char == "\n" else None
+            if not probable_comment and self.current_char == "-":
+                probable_comment = True
+                self.advance()
+            elif probable_comment and self.current_char == "-":
+                comment_mode = True
+                comment_type = "inline"
+                probable_comment = False
+                self.advance()
+            elif comment_mode:
+                if comment_type == "inline" and self.current_char == "\n":
+                    comment_mode = False
+                elif comment_type == "multiline" and self.current_char == "*":
+                    self.advance()
+                    if self.current_char == "/":
                         comment_mode = False
-
-                elif comment_type == "multiline":
-                    if self.current_char in "*":
-                        self.advance()
-                        comment_mode = False if self.current_char in "\\" else None
+                self.advance()
+            elif not comment_mode and self.current_char == "/":
+                self.advance()
+                if self.current_char == "*":
+                    comment_mode = True
+                    comment_type = "multiline"
                 self.advance()
             elif not comment_mode:
-                if self.current_char in COMMENTS_START_SYMBOLS:
-                    comment_mode = True  # initialise Comment Mode
-                    if self.current_char in "-":
-                        self.advance()
-                        if self.current_char in "-":
-                            comment_type = "inline"
-                        else:
-                            return None, InvalidSyntaxError("-")
-
-                        # with --
-                    elif self.current_char in "/":
-                        self.advance()
-                        comment_type = "multiline" if self.current_char in "*" else None
-                    self.advance()
-                elif self.current_char == OPENING_PARENTHESIS:
+                if self.current_char == OPENING_PARENTHESIS:
                     """An opening parenthesis has been encountered"""
                     if not tuple_mode:
                         tuple_mode = True  # initialise tuple mode
@@ -122,7 +137,7 @@ class Lexer:
                     self.advance()
                 elif self.current_char == CLOSING_PARENTHESIS:
                     if tuple_mode and not nested_tuple_mode:
-                        """Implying the ned of a tuple"""
+                        """Implying the end of a tuple"""
                         tuple_mode = False  # Exit Tuple mode
                         if not major_division_by_space_mode:
                             variable_tuple.append(temp) if temp is not None else None
@@ -142,7 +157,6 @@ class Lexer:
                         temp = None
                         temp_holder.append(tuple(nested_tuple_variable))
                         nested_tuple_variable = []
-
                     self.advance()
                 elif self.current_char in STRING_CHARS:
                     """Handles all symbols that represent strings"""
@@ -180,6 +194,15 @@ class Lexer:
                         temp = None
                         temp_holder = []
                     self.advance()
+                elif tuple_mode and self.current_char == NEWLINE or self.current_char == TAB:
+                    if self.previous_char in COMMA:
+                        variable_tuple.append(temp) if temp is not None else None
+                        temp = None
+                    elif self.previous_char not in COMMA:
+                        major_division_by_space_mode = True
+                        temp_holder.append(temp) if temp is not None else None
+                        temp = None
+                    self.advance()
                 elif self.current_char in SPACE or self.current_char in NEWLINE or self.current_char in TAB and not string_mode:
                     if not tuple_mode:
                         if temp is not None:
@@ -202,6 +225,12 @@ class Lexer:
                     elif temp is not None:
                         temp += self.current_char
                     self.advance()
+                elif self.current_char in ACCEPTED_SYMBOLS and tuple_mode:
+                    if temp is None:
+                        temp = self.current_char
+                    elif temp is not None:
+                        temp += self.current_char
+                    self.advance()
                 elif self.current_char in STOP:
                     """Identifies the full stop for join Table.Column integrations and Meta Commands"""
                     if temp is None:
@@ -213,7 +242,7 @@ class Lexer:
                     self.advance()
 
                 else:
-                    return None, UnknownSyntaxError(self.current_char)
+                    return None, UnknownSyntaxError(self.current_char, self.line, self.column)
         tokens.append(temp) if temp is not None else None
         """Handle Errors"""
         if tokens is None:
