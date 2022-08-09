@@ -99,7 +99,7 @@ class Lexer:
 
         while self.current_char is not None:
             self.advanceLine() if self.current_char == "\n" else None
-            if not probable_comment and self.current_char == "-":
+            if not probable_comment and self.current_char == "-" and not string_mode:
                 probable_comment = True
                 self.advance()
             elif probable_comment and self.current_char == "-":
@@ -115,7 +115,7 @@ class Lexer:
                     if self.current_char == "/":
                         comment_mode = False
                 self.advance()
-            elif not comment_mode and self.current_char == "/":
+            elif not comment_mode and self.current_char == "/" and not string_mode:
                 self.advance()
                 if self.current_char == "*":
                     comment_mode = True
@@ -145,8 +145,10 @@ class Lexer:
                             variable_tuple = []
                         else:
                             temp_holder.append(temp) if temp is not None else None
-                            variable_tuple.append(tuple(temp_holder))
-                            tokens.append(tuple(variable_tuple))
+                            # variable_tuple.append(tuple(temp_holder))
+                            variable_tuple.extend(temp_holder)
+                            # tokens.append(tuple(variable_tuple))
+                            tokens.append(tuple(temp_holder))
                             temp_holder = []
                             variable_tuple = []
                         temp = None
